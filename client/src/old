@@ -1,0 +1,91 @@
+import React, { useState, useEffect, useReducer } from 'react';
+import './App.css';
+
+// const messages = [
+//   {
+//     author: "alex",
+//     data: "hey hey hey"
+//   },
+//   {
+//     author: "bob",
+//     data: "....."
+//   },
+//   {
+//     author: "alex",
+//     data: "what's the deal bob?"
+//   },
+// ]
+
+// let messagesByAuthor = messages.reduce((result, message) => {
+//   let messages = result[message.author] || []
+//   result[message.author] = [...messages, message.data]
+//   return result
+// }, {})
+
+const socket = new WebSocket('ws://localhost:8080');
+
+function reducer (state, action) {
+    switch(action.type) {
+      case 'SET_USERNAME':
+        return {...state, username: action.payload }
+      default:
+        return state
+    }
+  
+}
+
+function App() {
+  let [state, dispatch] = useReducer(reducer, {
+    username: 'Alex'
+  })
+  let [draftMessage, setDraftMessage] = useState('')
+  let [messages, setMessages] = useState([])
+
+  useEffect(() => {
+    socket.addEventListener('message', event => {
+      let parsedData = JSON.parse(event.data)
+
+      setMessages(parsedData)
+    })
+  }, [])
+
+  return (
+    <div className="App">
+      <h1>
+        set your name
+      </h1>
+      <input
+        onChange={event => dispatch({
+          type: 'SET_USERNAME',
+          payload: event.target.value
+        })}
+        value={state.username}
+      />
+      <h2>
+        what's your message
+      </h2>
+      <input
+        onChange={event => setDraftMessage(event.target.value)}
+        onKeyPress={event => {
+          if (event.key === 'Enter') {
+            // setMessages([...messages, event.target.value])
+            setDraftMessage('')
+
+            socket.send(JSON.stringify({
+              message: event.target.value,
+              username: state.username
+            }))
+          }
+        }}
+        value={draftMessage}
+      />
+
+      <ul>
+        {messages.map(message =>
+          <li key={message.date}><b>{message.username}</b> {message.message}</li>)}
+      </ul>
+    </div>
+  );
+}
+
+export default App;
